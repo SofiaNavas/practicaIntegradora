@@ -1,0 +1,46 @@
+[
+    {
+      "id": 1,
+      "title": "Prueba 20/07/2023",
+      "description": "Description",
+      "code": "a5",
+      "price": 10,
+      "status": true,
+      "stock": 10,
+      "category": "Category",
+      "thumbnail": []
+    },
+    {
+      "id": 2,
+      "title": "Test 20/07",
+      "description": "Desc",
+      "code": "A",
+      "price": 10,
+      "status": true,
+      "stock": 10,
+      "category": "Category",
+      "thumbnail": []
+    },
+    {
+      "id": 3,
+      "title": "Test 20/07",
+      "description": "Desc",
+      "code": "B",
+      "price": 10,
+      "status": true,
+      "stock": 10,
+      "category": "Category",
+      "thumbnail": []
+    },
+    {
+      "id": 4,
+      "title": "Test 20/07",
+      "description": "Desc",
+      "code": "C",
+      "price": 10,
+      "status": true,
+      "stock": 10,
+      "category": "Category",
+      "thumbnail": []
+    }
+  ]
