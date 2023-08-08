@@ -1,11 +1,11 @@
 const express = require('express');
 const mongoose = require('mongoose')
 
-const userModel = require('./Dao/Models/user.model')
+const userModel = require('./Dao/Models/products.model')
 
 const app = express();
 
-MONGODB_CONNECT= 'mongodb+srv://sofianavasg:Coder01!@cluster0.8ieczog.mongodb.net/Prueba1?retryWrites=true&w=majority'
+MONGODB_CONNECT= 'mongodb+srv://sofianavasg:Coder01!@cluster0.8ieczog.mongodb.net/ecommerce?retryWrites=true&w=majority'
 mongoose.connect(MONGODB_CONNECT)
 .catch(err =>{
     if (err) {
@@ -14,7 +14,7 @@ mongoose.connect(MONGODB_CONNECT)
     }
 })
 
-const Router = express.Router;
+// const Router = express.Router;
 const handlebars = require ('express-handlebars')
 const {Server} = require('socket.io')
 
