@@ -46,13 +46,30 @@ productRouter.get('/', async (req, res) => {
     }
   });
 
-  // Agregar un nuevo producto
+//   // Agregar un nuevo producto
+// productRouter.post('/', async (req, res) => {
+//   try {
+//     const productData = req.body;
+//     const newProduct = await ProductModel.create(productData); // Usar el método create() de Mongoose para crear un nuevo producto
+//     const updatedProducts = await ProductModel.find({}); // Obtener la lista actualizada de productos
+//     req.io.emit('nuevoProducto', updatedProducts); // Emitir el evento de nuevo producto a través del socket.io
+//     console.log('Product added:', newProduct);
+    
+//     res.status(201).json({ message: 'Product added successfully.', product: newProduct });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// });
+
+// Agregar un nuevo producto
 productRouter.post('/', async (req, res) => {
   try {
     const productData = req.body;
     const newProduct = await ProductModel.create(productData); // Usar el método create() de Mongoose para crear un nuevo producto
+    const updatedProducts = await ProductModel.find({}); // Obtener la lista actualizada de productos
 
-    req.io.emit('nuevoProducto', newProduct); // Emitir el evento de nuevo producto a través del socket.io
+    // Emitir el evento de nuevo producto y actualizar productos a través del socket.io
+    req.io.emit('nuevoProducto', updatedProducts);
     console.log('Product added:', newProduct);
     
     res.status(201).json({ message: 'Product added successfully.', product: newProduct });
@@ -82,23 +99,26 @@ productRouter.put('/:pid', async (req, res) => {
   }
 });
   
- // Eliminar un producto
+
+
 productRouter.delete('/:pid', async (req, res) => {
   const productId = req.params.pid;
   try {
     const deletedProduct = await ProductModel.findByIdAndDelete(productId);
-
-    if (!deletedProduct) {
-      res.status(404).json({ error: 'Producto no encontrado' });
-    } else {
-      req.io.emit('deleteProduct', productId); // Emitir el evento de producto eliminado a través del socket.io
+    if (deletedProduct) {
+      const updatedProducts = await ProductModel.find({});
+      req.io.emit('deleteProduct', productId);
+      req.io.emit('nuevoProducto', updatedProducts);
       console.log('Product deleted:', productId);
       res.json({ message: 'Product deleted successfully.', product: deletedProduct });
+    } else {
+      res.status(404).json({ error: 'Producto no encontrado' });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
+
 
 
   module.exports=productRouter

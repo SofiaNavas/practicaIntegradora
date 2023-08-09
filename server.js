@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose')
 
-const userModel = require('./Dao/Models/products.model')
+const ProductModel = require('./Dao/Models/products.model')
 
 const app = express();
 
@@ -38,6 +38,24 @@ const httpServer = app.listen (PORT, ()  => console.log (`Servidor iniciado en h
 
 const io = new Server(httpServer);
 
+app.get('/realtimeproducts', async (req, res) => {
+    try {
+        console.log('PC1'); // Punto de control
+        const products = await ProductModel.find({});
+        const params = {
+            title: 'realtimeproducts',
+            products: products,
+        };
+        console.log('PC2'); // Punto de control
+        return res.render('realTimeProducts', params);
+        
+    } catch (error) {
+        console.error('Error retrieving products:', error);
+        return res.status(500).json({ error: 'Error al obtener los productos' });
+    }
+});
+
+
 app.use('/api/products', (req, res, next) => {
   req.io = io; // Pass the io instance to the request object
   next();
@@ -46,6 +64,8 @@ app.use('/api/products', (req, res, next) => {
 
 app.use('/api/products', productRouter)
 app.use('/api/carts', cartRouter)
+
+
 
 
 app.get('/home',(req,res) => {
@@ -60,21 +80,6 @@ app.get('/home',(req,res) => {
 })
 
 
-app.get('/realtimeproducts',(req,res) => {
-
-  const params = {
-      title: 'realtimeproducts',
-      products: products,
-
-  }
-  return res.render('realTimeProducts', params)
-  
-})
-
-io.on('connection', (socket) => {
-  console.log('New client connected');
-});
-
 
 app.get('/healthcheck', (req,res) => {
     return res.json({
@@ -83,75 +88,88 @@ app.get('/healthcheck', (req,res) => {
     })
 })
 
-app.get('/api/users', async (req,res) => {
+
+
+
+// io.on('connection', (socket) => {
+//     console.log('New client connected');
     
-    const user = await userModel.find()
+//     // Esta parte debe ser movida aquí para estar a la misma altura que el evento 'connection'
+//     socket.on('getInitialProducts', async () => {
+//         try {
+//             const products = await ProductModel.find({});
+//             socket.emit('initialProducts', { products });
+//         } catch (error) {
+//             console.error('Error retrieving initial products:', error);
+//         }
+//     });
 
-    return res.json(user)
-})
+//     socket.on('deleteProduct', async (productId) => {
+//         try {
+//             await ProductModel.findByIdAndDelete(productId);
+//             const updatedProducts = await ProductModel.find({});
+//             io.emit('nuevoProducto', updatedProducts);
+//             console.log('Product deleted:', productId);
+//         } catch (error) {
+//             console.error('Error deleting product:', error);
+//         }
+//     });
+// });
 
-app.post('/api/users', async (req,res) => {
+
+io.on('connection', (socket) => {
+    console.log('New client connected - PC3');
     
-    const body = req.body
+    // Emitir los productos iniciales al cliente inmediatamente después de la conexión
+    emitInitialProducts(socket);
+    console.log(' PC4');
 
-    try {
-        const result = await userModel.create({
-            title: body.title,
-            description: body.description,
-            code: body.code,
-            price: body.price,
-            status: body.status,
-            stock: body.stock,
-            category: body.category,
-            thumbnail: body.thumbnail
-            })
-            return res.status(201).json(result)
-                }
-    catch (e)
-    {return res.status(500).json(e)}
-    
-   
-})
+    socket.on('getInitialProducts', async () => {
+        emitInitialProducts(socket); // Esto es para manejar el caso en el que el cliente se reconecta
+        console.log(' PC5');
+    });
 
-app.get('/api/users/:id', async (req,res) => {
-    
-    const user = await userModel.findById(req.params.id)
+    socket.on('nuevoProducto', (data) => {
+        console.log('New product received:', data);
+        updateProductTable(data);
+      });
 
-    return res.json(user)
-})
-
-app.put('/api/users/:id', async (req,res) => {
-    
-    const body = req.body
-
-    try {
-        const user = await userModel.findById(req.params.id)
-
-        const userUpdated = {
-            title: body.title || user.title,
-            description: body.description || user.description,
-            code: body.code || user.code,
-            price: body.price || user.price,
-            status: body.status || user.status,
-            stock: body.stock || user.stock,
-            category: body.category || user.category,
-            thumbnail: body.thumbnail || user.thumbnail
+    socket.on('deleteProduct', async (productId) => {
+        try {
+            await ProductModel.findByIdAndDelete(productId);
+            const updatedProducts = await ProductModel.find({});
+            //io.emit('nuevoProducto', { products: updatedProducts });
+            io.emit('deleteProduct', productId);
+            console.log('Product deleted: PC1', productId);
+        } catch (error) {
+            console.error('Error deleting product:', error);
         }
+    });
 
-        const result = await userModel.updateOne(
-            {_id: req.params.id} , userUpdated)
-            return res.json(userUpdated)
-                }
-    catch (e)
-    {return res.status(500).json(e)}
+    socket.on('addProduct', async (productData) => {
+        try {
+          const newProduct = await ProductModel.create(productData);
+          const updatedProducts = await ProductModel.find({}); // Obtener la lista actualizada de productos
+          io.emit('nuevoProducto', { products: updatedProducts }); // Emitir evento con la lista actualizada
+          console.log('Product added:', newProduct);
+        } catch (error) {
+          console.error('Error adding product:', error);
+        }
+      });
+      
     
-   
-})
 
-app.delete('/api/users/:id', async (req,res) => {
     
-    const user = await userModel.deleteOne({_id: req.params.id})
+});
 
-    return res.json(user)
-})
+// Función para emitir los productos iniciales al cliente
+async function emitInitialProducts(socket) {
+    try {
+        const products = await ProductModel.find({});
+        socket.emit('initialProducts', { products });
+    } catch (error) {
+        console.error('Error retrieving initial products:', error);
+    }
+}
+
 

@@ -1,38 +1,111 @@
-<script src="/socket.io/socket.io.js"></script> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Time Products</title>
+</head>
+<body>
 
-<script src="/js/realTimeProducts.js"></script>
-
-
-
+<script src="/socket.io/socket.io.js"></script>
 
 <table id="productos">
-    <tr>
-        <th>ID</th>
-        <th>Title</th>
-        <th>Description</th>
-        <th>Code</th>
-        <th>Price</th>
-        <th>Status</th>
-        <th>Stock</th>
-        <th>Category</th>
+  <tr>
+    <th>ID</th>
+    <th>Title</th>
+    <th>Description</th>
+    <th>Code</th>
+    <th>Price</th>
+    <th>Status</th>
+    <th>Stock</th>
+    <th>Category</th>
+    
+  </tr>
+  {{#each products}}
+    <tr data-product-id="{{this._id}}">
+      <td>{{this._id}}</td>
+      <td>{{this.title}}</td>
+      <td>{{this.description}}</td>
+      <td>{{this.code}}</td>
+      <td>{{this.price}}</td>
+      <td>{{this.status}}</td>
+      <td>{{this.stock}}</td>
+      <td>{{this.category}}</td>
+      <td>
+        <button onclick="deleteProduct('{{this._id}}')">Delete</button>
+      </td>
     </tr>
-    {{#each products}}
-
-         <tr data-product-id= {{this.id}}> 
-            <td>{{this.id}}</td>
-            <td>{{this.title}}</td>
-            <td>{{this.description}}</td>
-            <td>{{this.code}}</td>
-            <td>{{this.price}}</td>
-            <td>{{this.status}}</td>
-            <td>{{this.stock}}</td>
-            <td>{{this.category}}</td>
-        </tr>
-
-    {{/each}}
-
-
+  {{/each}}
 </table>
 
+<script>
+  const socket = io();
+
+  socket.on('connect', () => {
+    console.log('Connected to server');
+  });
+
+  socket.on('initialProducts', (data) => {
+    console.log('Initial products received: PC1', data);
+    updateProductTable(data.products);
+  });
+
+  socket.on('nuevoProducto', (data) => {
+    console.log('New product received PC2:', data);
+   
+    updateProductTable(data.products);
+     console.log('PC3 -')
+  });
+
+function updateProductTable(products) {
+  console.log('Updating table with new products:', products);
+
+  const table = document.getElementById('productos');
+  const rows = products.map(product => `
+    <tr data-product-id="${product._id}">
+      <td>${product._id}</td>
+      <td>${product.title}</td>
+      <td>${product.description}</td>
+      <td>${product.code}</td>
+      <td>${product.price}</td>
+      <td>${product.status}</td>
+      <td>${product.stock}</td>
+      <td>${product.category}</td>
+      
+    </tr>
+  `).join('');
+
+  table.innerHTML = `
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Description</th>
+      <th>Code</th>
+      <th>Price</th>
+      <th>Status</th>
+      <th>Stock</th>
+      <th>Category</th>
+      <th>Actions</th>
+    </tr>
+    ${rows}
+  `;
+
+  console.log('Table updated successfully');
+}
 
 
+  socket.on('deleteProduct', (productId) => {
+    console.log('Product deleted: PC4', productId);
+    const deletedRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+    if (deletedRow) {
+      deletedRow.remove();
+    }
+  });
+
+  function deleteProduct(productId) {
+    socket.emit('deleteProduct PC5', productId);
+  }
+</script>
+
+</body>
+</html>
