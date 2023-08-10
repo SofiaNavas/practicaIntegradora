@@ -1,48 +1,54 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const socket = io();
 
-  socket.on('connect', () => {
-    console.log('Connected to server');
-    console.log(' PC6');
-    // Solicitar los datos iniciales de los productos al conectar
-    socket.emit('getInitialProducts');
-    console.log(' PC7');
-  });
+const socket = io();
 
-  socket.on('initialProducts', (data) => {
-    console.log('Initial products received:', data);
-    console.log(' PC8');
-    renderProductTable(data.products);
-    console.log(' PC9');
-  });
+console.log(socket);
 
-  socket.on('nuevoProducto', (data) => {
-    console.log('New product received:', data);
-    renderProductTable(data.products);
-    console.log(' PC10');
-  });
 
-  socket.on('deleteProduct', (productId) => {
-    console.log('Product deleted:', productId);
-    removeProductRow(productId);
-    console.log(' PC11');
-  });
+socket.emit('mi_mensaje', 'primer mensaje enviado desde el cliente')
 
-  function renderProductTable(products) {
+socket.on('recibiendomensajebackend', (data) => {
+
+    console.log(data)
+})
+
+socket.on('nuevoProducto', (data) => {
+     console.log('New product received:', data);
+    updateProductTable(data); // Actualizar la tabla con la lista de productos completa
+
+    
+})
+
+socket.on('deleteProduct', (data) => {
+    console.log('Product deleted:', data);
+    updateProductTable(data); // Actualizar la tabla con la lista de productos completa
+});
+
+
+
+socket.on('updatedProduct', (data) => {
+    // console.log('Product updated:', data);
+    updateProductTable(data); // Actualizar la tabla con la lista de productos completa
+    console.log('PC1');
+});
+
+
+function updateProductTable(products) {
     const table = document.getElementById('productos');
-    table.innerHTML = ''; // Limpia la tabla antes de renderizar los nuevos productos
+    table.innerHTML = `<tr>
+    <th>ID</th>
+    <th>Title</th>
+    <th>Description</th>
+    <th>Code</th>
+    <th>Price</th>
+    <th>Status</th>
+    <th>Stock</th>
+    <th>Category</th>
+  </tr>`; // Limpiar la tabla antes de agregar los productos actualizados
   
     products.forEach((product) => {
-      const row = createProductRow(product);
-      table.appendChild(row);
-    });
-  }
+      const row = document.createElement('tr');
   
-
-  function createProductRow(product) {
-    console.log(' PC15');
-    const row = document.createElement('tr');
-    row.innerHTML = `
+      row.innerHTML = `
       <td>${product._id}</td>
       <td>${product.title}</td>
       <td>${product.description}</td>
@@ -51,19 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <td>${product.status}</td>
       <td>${product.stock}</td>
       <td>${product.category}</td>
-      <td><button onclick="deleteProduct('${product._id}')">Delete</button></td>
-    `;
-    return row;
+      `;
+  
+      table.appendChild(row);
+    });
   }
-
-  function removeProductRow(productId) {
-    const deletedRow = document.querySelector(`tr[data-product-id="${productId}"]`);
-    if (deletedRow) {
-      deletedRow.remove();
-    }
-  }
-
-  function deleteProduct(productId) {
-    socket.emit('deleteProduct', productId);
-  }
-});

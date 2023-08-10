@@ -1,11 +1,11 @@
 const express = require('express');
 const ProductModel = require('../Dao/Models/products.model');
-const ProductManager = require('../Dao/ProductManager');
+
 const Router = express.Router;
 
 const app = express();
 const productRouter = Router()
-const productManager = new ProductManager('./prueba.json');
+
 
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
@@ -17,9 +17,11 @@ productRouter.get('/', async (req, res) => {
   
       // const products = productManager.getProducts(); //Esto es lo que se hace en FS
       const products = await ProductModel.find({}); // Usar el método find() de Mongoose para obtener todos los productos
+      req.io.emit('mostrarProductos', products);
+      console.log('mostrarProductos - PC1')
       // Aplicar el límite si se especificó en el query param
       const limitedProducts = limit ? products.slice(0, limit) : products;
-  
+      
       res.json(limitedProducts);
     } catch (error) {
       res.status(500).json({ error: 'Error al obtener los productos' });
@@ -46,20 +48,7 @@ productRouter.get('/', async (req, res) => {
     }
   });
 
-//   // Agregar un nuevo producto
-// productRouter.post('/', async (req, res) => {
-//   try {
-//     const productData = req.body;
-//     const newProduct = await ProductModel.create(productData); // Usar el método create() de Mongoose para crear un nuevo producto
-//     const updatedProducts = await ProductModel.find({}); // Obtener la lista actualizada de productos
-//     req.io.emit('nuevoProducto', updatedProducts); // Emitir el evento de nuevo producto a través del socket.io
-//     console.log('Product added:', newProduct);
-    
-//     res.status(201).json({ message: 'Product added successfully.', product: newProduct });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// });
+
 
 // Agregar un nuevo producto
 productRouter.post('/', async (req, res) => {
@@ -67,10 +56,14 @@ productRouter.post('/', async (req, res) => {
     const productData = req.body;
     const newProduct = await ProductModel.create(productData); // Usar el método create() de Mongoose para crear un nuevo producto
     const updatedProducts = await ProductModel.find({}); // Obtener la lista actualizada de productos
-
+    const formattedProducts = updatedProducts.map(product => ({
+      ...product.toObject(), // Convert Mongoose object to plain object
+       _id: product._id.toString()
+    }));
     // Emitir el evento de nuevo producto y actualizar productos a través del socket.io
-    req.io.emit('nuevoProducto', updatedProducts);
+    req.io.emit('nuevoProducto', formattedProducts);
     console.log('Product added:', newProduct);
+    console.log('nuevoProducto - PC2')
     
     res.status(201).json({ message: 'Product added successfully.', product: newProduct });
   } catch (error) {
@@ -92,6 +85,14 @@ productRouter.put('/:pid', async (req, res) => {
     if (!updatedProduct) {
       res.status(404).json({ error: 'Producto no encontrado' });
     } else {
+           
+        const updatedProducts3 = await ProductModel.find({}); // Obtener la lista actualizada de productos
+        const formattedProducts3 = updatedProducts3.map(product => ({
+          ...product.toObject(), // Convert Mongoose object to plain object
+           _id: product._id.toString()
+        }));
+    
+          req.io.emit('updatedProduct', formattedProducts3);
       res.json({ message: 'Product updated successfully.', product: updatedProduct });
     }
   } catch (error) {
@@ -105,11 +106,19 @@ productRouter.delete('/:pid', async (req, res) => {
   const productId = req.params.pid;
   try {
     const deletedProduct = await ProductModel.findByIdAndDelete(productId);
+    
     if (deletedProduct) {
-      const updatedProducts = await ProductModel.find({});
-      req.io.emit('deleteProduct', productId);
-      req.io.emit('nuevoProducto', updatedProducts);
+
+      
+    const updatedProducts2 = await ProductModel.find({}); // Obtener la lista actualizada de productos
+    const formattedProducts2 = updatedProducts2.map(product => ({
+      ...product.toObject(), // Convert Mongoose object to plain object
+       _id: product._id.toString()
+    }));
+
+      req.io.emit('deleteProduct', formattedProducts2);
       console.log('Product deleted:', productId);
+      console.log('deletedProduct')
       res.json({ message: 'Product deleted successfully.', product: deletedProduct });
     } else {
       res.status(404).json({ error: 'Producto no encontrado' });
