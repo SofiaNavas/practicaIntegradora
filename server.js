@@ -29,6 +29,9 @@ app.use(express.static('public'))
 const productRouter = require('./routers/productRouter')
 const cartRouter = require('./routers/cartRouter')
 
+const ChatModel = require('./Dao/Models/chat.model');
+
+
 
 const PORT = 8080
 const httpServer = app.listen (PORT, ()  => console.log (`Servidor iniciado en http://localhost:${PORT}`))
@@ -45,13 +48,60 @@ app.use('/api/products', (req, res, next) => {
 
   
 io.on ('connection', (socket) =>{
-  console.log('Nuevo cliente conectado')
+
+  socketId = socket.id
+  console.log('Nuevo cliente conectado', socket.id)
 
   socket.on('mi_mensaje', (data) =>{  //para recibir mensajes del lado del servidor
     console.log(data)
   })
 
-  socket.emit('recibiendomensajebackend', 'primer mensaje enviado desde el backend')
+  socket.on('joinChat', async (username) =>{  
+
+    try {
+      await ChatModel.create({
+        name: username,
+        socketId: socket.id
+        
+      });
+ 
+      console.log(`Usuario ${username} con ID ${socket.id} agregado a la base de datos`);
+      socket.broadcast.emit('newUser', username)
+
+      socket.emit('messages', messages) 
+     
+    } catch (error) {
+      console.error('Error al agregar usuario a la base de datos:', error);
+    }
+    // console.log(username, socket.id)
+
+    socket.on('newMessage', async (messageObj) => {
+      try {
+        const chatHistory = await ChatModel.findOne({
+          $and: [{ name: "chatHistory" }, { socketId: "0QkYoYvbSLxIQOooAAAF" }]
+        });
+        console.log('se encuentra chathistory')
+        const user = await ChatModel.findOne({ socketId: socketId });
+        console.log('se encuentra al user')
+        if (user && chatHistory) {
+          chatHistory.messages.push(messageObj.message);
+          console.log('se agrega el mensaje al chathistory')
+          await chatHistory.save();
+          console.log('Nuevo mensaje agregado al historial del chat en la base de datos:', messageObj.message);
+          io.emit('message', messageObj)
+          io.emit('chatHistory', chatHistory);
+        } else {
+          console.log('No se encontró el usuario en la base de datos.');
+        }
+      } catch (error) {
+        console.error('Error al agregar mensaje al usuario en la base de datos:', error);
+      }
+    });
+  });
+
+
+
+  // socket.emit('recibiendomensajebackend', 'primer mensaje enviado desde el backend')
 
 })
 
@@ -62,6 +112,7 @@ io.on ('connection', (socket) =>{
           date: new Date()
       })
   })
+
 
 
   app.get('/realtimeproducts', async (req,res) => {
@@ -86,4 +137,29 @@ return res.render('realTimeProducts', params)
     console.error(e)
     
 }     
+})
+
+
+app.get('/login', (req,res) => {
+
+  return res.render('login')
+})
+
+app.post('/login',  async (req,res) => {
+
+  const user = req.body
+
+  const username = user.name
+  //  const newProduct = await ChatModel.create(user);
+  
+
+  // io.emit('newUser', username)
+  
+  return res.redirect(`/chat?username=${username}`)
+  
+})
+
+app.get('/chat', (req,res) => {
+
+  return res.render('chat')
 })
