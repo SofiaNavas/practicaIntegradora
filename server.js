@@ -50,6 +50,8 @@ app.use('/api/products', (req, res, next) => {
 io.on ('connection', (socket) =>{
 
   socketId = socket.id
+ 
+  
   console.log('Nuevo cliente conectado', socket.id)
 
   socket.on('mi_mensaje', (data) =>{  //para recibir mensajes del lado del servidor
@@ -68,6 +70,22 @@ io.on ('connection', (socket) =>{
       console.log(`Usuario ${username} con ID ${socket.id} agregado a la base de datos`);
       socket.broadcast.emit('newUser', username)
 
+      try{
+
+        const chatHistory = await ChatModel.findOne({
+          $and: [{ name: "chatHistory" }, { socketId: "S_K7oTKllR8O5BV_AAAR" }]
+        });
+      
+      
+      if (chatHistory) {
+        socket.emit('chatHistory', chatHistory.messages);
+      } else {
+        console.log('No se encontró el historial de chat para este usuario.');
+      }
+    } catch (error) {
+      console.error('Error al obtener el historial de chat:', error);
+    }
+
       socket.emit('messages', messages) 
      
     } catch (error) {
@@ -75,21 +93,27 @@ io.on ('connection', (socket) =>{
     }
     // console.log(username, socket.id)
 
+  
+
     socket.on('newMessage', async (messageObj) => {
       try {
         const chatHistory = await ChatModel.findOne({
-          $and: [{ name: "chatHistory" }, { socketId: "0QkYoYvbSLxIQOooAAAF" }]
+          $and: [{ name: "chatHistory" }, { socketId: "S_K7oTKllR8O5BV_AAAR" }]
         });
+        
         console.log('se encuentra chathistory')
         const user = await ChatModel.findOne({ socketId: socketId });
         console.log('se encuentra al user')
         if (user && chatHistory) {
-          chatHistory.messages.push(messageObj.message);
+          chatHistory.messages.push({
+            username: user.name, // Utiliza el nombre del usuario que envió el mensaje
+            message: messageObj.message
+          });
           console.log('se agrega el mensaje al chathistory')
           await chatHistory.save();
           console.log('Nuevo mensaje agregado al historial del chat en la base de datos:', messageObj.message);
           io.emit('message', messageObj)
-          io.emit('chatHistory', chatHistory);
+          // io.emit('chatHistory', chatHistory.messages);
         } else {
           console.log('No se encontró el usuario en la base de datos.');
         }

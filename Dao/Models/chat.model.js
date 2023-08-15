@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const chatSchema = mongoose.Schema({
   name: String,
   socketId: String,
-  messages: [{ type: String }],
+  messages: [{
+    username: String, // Agregar el nombre del usuario que envió el mensaje
+    message: String
+  }],
   
 });
 

@@ -21,9 +21,9 @@ socket.on('newUser', user => {
 });
 
 socket.on('chatHistory', chatHistory => {
-    chatHistory.message.forEach(message => {
+    chatHistory.forEach(messageObj => {
       messagesContainer.innerHTML += `
-        <div> ${chatHistory.name}: ${message}</div>
+        <div> ${messageObj.username}: ${messageObj.message}</div>
       `;
     });
   });
